@@ -1,111 +1,46 @@
-init.form.markdown = function(form, start.token = "# <--START-->") {
-  restore.point("init.markdown.form")
 
-  if (!is.null(form$file)) {
-    text = readLines(form$file, warn=FALSE)
-    rows = NULL
-    if (!is.null(start.token)) {
-      rows = which(text==start.token)
-    }
-    if (length(rows)>0) {
-      form$md_source = text[(rows[1]+1):length(text)]
-    } else {
-      form$md_source = text
-    }
-    form$text = text
-  }
-  if (!is.null(form$text)) {
-    form = inject.front.matter.form(form=form)
-  }
+examples.markdown.form = function() {
+  view.rmd.form("game1_input.rmd")
+  rmd = readLines("game1_input.rmd")
 
-  if (!is.null(form$md_source)) {
-    txt = paste0(form$md_source,collapse="\n")
-    form$whiskers.call.list = whiskers.call.list(txt)
-    form$markdown.blocks.call.list = markdown.blocks.call.list(form$md_source)
-  }
-
-  form
+  res = read.form.rmd(txt = rmd)
 
 }
 
+view.rmd.form = function(file, txt=readLines(file, warn=FALSE), prefix="form", launch.browser = rstudio::viewer) {
+  restore.point("view.rmd.form")
 
-form.ui.markdown = function(form=NULL,file=form[["file"]], text=form$md_source, parse.form=TRUE, params = form[["params"]], set.UTF8=TRUE, whiskers=TRUE, knit=isTRUE(form$knit), parent.env = parent.frame(), fragment.only=TRUE, start.token = "# <--START-->", ret.val="HTML", select.blocks=TRUE,whiskers.call.list=form$whiskers.call.list,markdown.blocks.call.list = form$markdown.blocks.call.list, ...) {
-  restore.point("form.ui.markdown")
-
-  if (!is.null(file) & is.null(text)) {
-    text = readLines(file,warn = FALSE)
-  } else {
-    if (length(text)==1) text = sep.lines(text)
-  }
-
-  if (set.UTF8)
-    Encoding(text)<-"UTF-8"
-
-  if (parse.form & is.null(form)) {
-    form = get.front.matter.form(text=text)
-  }
-
-
-  if (!is.null(start.token)) {
-    rows = which(text==start.token)
-    if (length(rows)>0) {
-      text = text[(rows[1]+1):length(text)]
-    }
-  }
-
-  if (select.blocks & !is.null(params)) {
-    text = sep.lines(text)
-    text = select.markdown.blocks(text, params, call.list = markdown.blocks.call.list)
-  }
-  if (whiskers) {
-    params$form = form
-    set.form(form)
-    text = paste0(text, collapse="\n")
-    text = replace.whiskers(text,params, whiskers.call.list=whiskers.call.list)
-  }
-  if (knit) {
-    if (!is.null(form))
-      set.form(form)
-    if (!is.null(params)) {
-      env = as.environment(params)
-      parent.env(env)<-parent.env
-    } else {
-      env = parent.env
-    }
-    if (ret.val == "md") {
-      return(knit(text=text,quiet=TRUE,envir=env))
-    }
-
-    html = knit.text(text=text, quiet=TRUE,envir=env, fragment.only=fragment.only)
-    html = gsub("&lt;!&ndash;html_preserve&ndash;&gt;","",html, fixed=TRUE)
-    html = gsub("&lt;!&ndash;/html_preserve&ndash;&gt;","",html, fixed=TRUE)
-
-  } else {
-    if (ret.val == "md") {
-      return(text)
-    }
-    # Neccessary to make mathjax work
-    #text =gsub("\\\\","\\\\\\\\",text, fixed=TRUE)
-    html = markdownToHTML(text=text, fragment.only=fragment.only)
-  }
-  #rmarkdown::render(text=text)
-  HTML(html)
-
-}
-
-
-
-view.form.markdown= function(file=NULL,form=NULL, params=NULL, knit=TRUE, launch.browser = rstudioapi::viewer, ui = NULL,...) {
+  res = read.form.rmd(txt=txt)
+  form = init.form(res$form, prefix=prefix)
+  set.form(form)
+  cr = compile.rmd(text=res$rmd)
+  ui = render.compiled.rmd(cr, out.type = "shiny",fragment.only = TRUE)
   app = eventsApp()
-  if (is.null(ui)) {
-    ui = form.ui.markdown(file=file, form=form, params=params, knit=knit,...)
-    form = get.form()
-  }
-  if (!is.null(form)) {
-    add.form.handlers(form,function(...) cat("\nGreat, all values are ok!"))
-  }
-  app$ui = fluidPage(with_mathjax(ui))
-  runEventsApp(app, launch.browser=launch.browser)
+  app$ui = fluidPage(withMathJax(ui))
+  viewApp(app, launch.browser=launch.browser)
+}
+
+
+read.form.rmd = function(file, txt=readLines(file, warn=FALSE)) {
+  restore.point("read.form.rmd")
+
+  res = separate.yaml.and.rmd(txt)
+  li = read.yaml(text = res$yaml)
+  form = li[["form"]]
+  settings = li[setdiff(names(li),"form")]
+  list(form=form, rmd=res$rmd,settings=settings)
+
+}
+
+separate.yaml.and.rmd = function(txt) {
+  res = partition_yaml_front_matter(txt)
+  yaml = res$front_matter
+  if (length(yaml)>=2)
+    yaml = yaml[-c(1,length(yaml))]
+  yaml = paste0(yaml, collapse="\n")
+  rmd = rmd.between.start.end.lines(res$body)
+
+  list(yaml = yaml, rmd=rmd)
 }
 
 
