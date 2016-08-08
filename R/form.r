@@ -156,11 +156,23 @@ get.form = function(app=getApp()) {
   }
 }
 
-formSubmitButton = function(label=form$texts$submitBtnLabel, form=get.form()) {
+formSubmitButton = function(label=form$texts$submitBtnLabel, form=get.form(), add.form.alert=TRUE) {
   restore.point("formSubmitButton")
 
   id = paste0(form$prefix,"submitBtn",form$postfix)
-  HTML(as.character(actionButton(id, label)))
+  btn = HTML(as.character(actionButton(id, label)))
+  if (!add.form.alert) return(btn)
+
+  tagList(formAlertUI(form), btn)
+
+
+}
+
+formAlertUI = function(form=get.form()) {
+  alertId = paste0(form$prefix,"form___Alert",form$postfix)
+  formAlert = uiOutput(alertId)
+  try(clear.form.alert(form=form), silent = TRUE)
+  formAlert
 }
 
 add.form.handlers = function(form, submit.handler=form$submit.handler,...) {
