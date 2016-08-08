@@ -13,7 +13,8 @@ examples.vecForm = function() {
 
 
   form = read.yaml(text=yaml,utf8 = TRUE)
-  form$success.handler = function(...) {
+  form$submit.handler = function(ok,...) {
+    if (!ok) return()
     cat("\nGreat you inserted valid numbers!")
   }
   form$lang = "de"

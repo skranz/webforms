@@ -12,7 +12,8 @@ examples.appForm = function() {
 
   setwd()
   form = yaml.form(file,utf8 = TRUE, prefix = "myform_", lang="de")
-  form$success.handler = function(values,...) {
+  form$submit.handler = function(ok,values,...) {
+    if (!ok) return()
     restore.point("snhdhhfrbf")
 
     cat("\nGreat you inserted valid numbers!")
@@ -69,6 +70,7 @@ init.form = function(form, compile.markdown.help=TRUE, lang="en", prefix=form$pr
   }
 
 
+  form$submit.on.failure = first.none.null(form$submit.on.failure, FALSE)
   form$widget.as.character=widget.as.character
   form$show.alerts = show.alerts
   form$prefix = prefix
@@ -161,11 +163,11 @@ formSubmitButton = function(label=form$texts$submitBtnLabel, form=get.form()) {
   HTML(as.character(actionButton(id, label)))
 }
 
-add.form.handlers = function(form, success.handler=form$success.handler,...) {
+add.form.handlers = function(form, submit.handler=form$submit.handler,...) {
   restore.point("add.form.handlers")
 
   id = paste0(form$prefix,"submitBtn",form$postfix)
-  buttonHandler(id,formSubmitClick, form=form, success.handler=success.handler,...)
+  buttonHandler(id,formSubmitClick, form=form, submit.handler=submit.handler,...)
 }
 
 form.ui = function(form, params=form$params, add_handlers=FALSE,  success_fun=form$success_fun,...) {
@@ -182,13 +184,14 @@ form.ui = function(form, params=form$params, add_handlers=FALSE,  success_fun=fo
 }
 
 
-formSubmitClick = function(form, success.handler = NULL,app=getApp(),id=NULL,session=NULL,...) {
+formSubmitClick = function(form, submit.handler = NULL,app=getApp(),id=NULL,session=NULL,...) {
   restore.point("formSubmitClick")
 
   res = get.form.values(form=form)
   restore.point("formSubmitClick_2")
-  if (res$ok & (!is.null(success.handler))) {
-    success.handler(values=res$values, form=form,...)
+  if (!is.null(submit.handler)) {
+    if (isTRUE(form$submit.on.failure) | res$ok)
+      submit.handler(ok=res$ok,values=res$values, form=form,...)
   }
 }
 

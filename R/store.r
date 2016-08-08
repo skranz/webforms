@@ -46,7 +46,18 @@ read.ndjson = function(con, as.data.frame=TRUE, txt=NULL,encoding = "UTF-8", num
   li
 }
 
-write.ndjson = function(x,file) {
+#' Write to a ndjson file
+#' @param x an R object. Typically a list or data.frame
+#' @export
+write.ndjson = function(x,file, append=FALSE) {
+
+  if (append) {
+    if (is.character(file))
+      file = file(file,open = "at")
+    write(toJSON(x),file)
+    close(file)
+    return()
+  }
   write(toJSON(x),file)
 }
 
