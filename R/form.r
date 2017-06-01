@@ -418,7 +418,7 @@ get.lang.form = function(form, lang=NULL) {
 }
 
 
-fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=form[["lang"]], lang.field = get.lang.field(field, lang), sets = form$sets, widget.as.character = !is.false(form$widget.as.character), form=get.form(), na.is.empty=TRUE) {
+fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=form[["lang"]], lang.field = get.lang.field(field, lang), sets = form$sets, widget.as.character = !is.false(form$widget.as.character), form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class)) {
 
   restore.point("fieldInput")
 
@@ -459,7 +459,7 @@ fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[[
     if (is.null(value)) value = ""
     if (is.na(value) & na.is.empty) value= ""
     if (TRUE | widget.as.character | readonly) {
-      res[[1]] = textInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left)
+      res[[1]] = textInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class)
       if (!widget.as.character)
         res[[1]] = HTML(res[[1]])
     } else {

@@ -8,13 +8,17 @@ label.and.input = function(label, input, inputId, label.left=FALSE) {
   }
 }
 
-textInputVector = function(inputId, label=NULL, value="", readonly = rep(FALSE, length(inputId)), style="", autocomplete = "off",class="", size=NULL, label.left=TRUE){
+textInputVector = function(inputId, label=NULL, value="", readonly = rep(FALSE, length(inputId)), style="", autocomplete = "off",class="", size=NULL, label.left=TRUE, form.control.class=TRUE){
 
   if (!is.null(size)) {
     style = paste0(style, ifelse(nchar(style)>0," ",""), "width: ",size,"em;")
   }
+  if (form.control.class) {
+    class = paste0("form-control ",class)
+  }
+
   input = paste0('
-    <input id="',inputId,'" type="text" style="',style,'" class="form-control ',class,'" value="',value,'"', ifelse(readonly,' readonly',''),' autocomplete="',autocomplete,'"/>')
+    <input id="',inputId,'" type="text" style="',style,'" class="',class,'" value="',value,'"', ifelse(readonly,' readonly',''),' autocomplete="',autocomplete,'"/>')
   label.and.input(label = label, input=input, inputId = inputId, label.left=label.left)
 }
 
@@ -54,7 +58,7 @@ actionButtonVector = function(id, label="",icon=NULL) {
   paste0('<button id="',id,'" type="button" class="btn btn-default action-button">',icon,label,'</button>')
 }
 
-checkBoxInputVector = function (inputId, label, value = FALSE)  {
+checkBoxInputVector = function (inputId, label, value = FALSE,...)  {
   code = rep("", length(inputId))
   checked.str = ifelse(value,' checked="checked"',"")
   value = rep(value, length.out=length(code))

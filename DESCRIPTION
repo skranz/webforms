@@ -7,6 +7,6 @@ Authors@R: person("Sebastian", "Kranz", email = "sebastian.kranz@uni-ulm.de", ro
 Description: Input forms for shinyEvent apps using simple yaml specification and possibly rmd
 License: GPL >= 2.0
 LazyData: TRUE
-Depends: markdown, shinyEvents, YamlObjects, whisker,
+Depends: markdown, shinyEvents, whisker,
          stringtools, rmarkdown, jsonlite, shinyBS, dbmisc,
          rmdtools, jsonlite

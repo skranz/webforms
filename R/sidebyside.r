@@ -110,7 +110,7 @@ formMarkdownToHTML =  function(text, params=NULL, parse.form=TRUE, set.UTF8=TRUE
     params$form = form
     set.form(form)
     text = paste0(text, collapse="\n")
-    text = replace.whiskers(text,params, add.params=TRUE, whiskers.call.list=whiskers.call.list)
+    text = webforms.replace.whiskers(text,params, add.params=TRUE, whiskers.call.list=whiskers.call.list)
   }
 
   if (!toHTML) return(text)

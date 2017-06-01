@@ -1,3 +1,8 @@
+is.false = function(x) {
+  if (!is.logical(x)) return(isTRUE(x))
+  !x
+}
+
 has.col = function(df, col) {
   col %in% names(df)
 }

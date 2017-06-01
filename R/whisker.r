@@ -100,7 +100,7 @@ markdown.blocks.call.list = function(txt) {
 
 }
 
-replace.whiskers <- function(str, env=parent.frame(), signif= getOption("whiskerSignifDigits")
+webforms.replace.whiskers <- function(str, env=parent.frame(), signif= getOption("whiskerSignifDigits")
 , round=  getOption("whiskerRoundDigits"), add.params=TRUE, whiskers.call.list=NULL) {
   restore.point("replace.whiskers")
 
