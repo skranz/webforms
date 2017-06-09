@@ -105,7 +105,7 @@ compile.form.markdown.tags = function(form, values=NULL,  tags = c("help","note"
 
     for (tag in tags) {
       if (!is.null(obj[[tag]])) {
-        obj[[paste0(tag,"_html")]] = compile.markdown(obj[[tag]], values=values)
+        obj[[paste0(tag,"_html")]] = replace.whiskers(md2html(obj[[tag]]), values=values)
       }
     }
     if (use.lang) {
@@ -175,11 +175,11 @@ formAlertUI = function(form=get.form()) {
   formAlert
 }
 
-add.form.handlers = function(form, submit.handler=form$submit.handler,...) {
+add.form.handlers = function(form, submit.handler=form$submit.handler, btn.id = paste0(form$prefix,"submitBtn",form$postfix),...) {
   restore.point("add.form.handlers")
 
-  id = paste0(form$prefix,"submitBtn",form$postfix)
-  buttonHandler(id,formSubmitClick, form=form, submit.handler=submit.handler,...)
+
+  buttonHandler(btn.id,formSubmitClick, form=form, submit.handler=submit.handler,...)
 }
 
 form.ui = function(form, params=form$params, add_handlers=FALSE,  success_fun=form$success_fun,...) {
@@ -418,7 +418,7 @@ get.lang.form = function(form, lang=NULL) {
 }
 
 
-fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=form[["lang"]], lang.field = get.lang.field(field, lang), sets = form$sets, widget.as.character = !is.false(form$widget.as.character), form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class)) {
+fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=form[["lang"]], lang.field = get.lang.field(field, lang), sets = form$sets, widget.as.character = !is.false(form$widget.as.character), form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class)) {
 
   restore.point("fieldInput")
 
@@ -478,12 +478,18 @@ fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[[
       for (set in sets[choice_set])
         choices = c(choices, set)
     }
+    if (!is.null(choice_labels))
+      names(choices) = choice_labels
     li = as.list(choices)
+
     multiple = isTRUE(field[["multiple"]])
     if (multiple & !is.null(field$collapse)) {
       value = strsplit(value,split = field$collapse,fixed = TRUE)[[1]]
     }
 
+    if ( (is.null(value) | isTRUE(field$optional)) & !multiple) {
+      choices = c(list(""),choices)
+    }
     res[[1]] = selectizeInput(id, label,choices=choices, selected=value, multiple=multiple)
 
   } else if (input == "ace") {
