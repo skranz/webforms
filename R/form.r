@@ -140,7 +140,9 @@ infer.form.type = function(form) {
 
 }
 
-set.form = function(form, app=getApp()) {
+set.form = function(form, app=getApp(), params) {
+  if (!missing(params))
+    form$params = params
   if (is.null(app)) {
     .APP.FORMS.GLOB[[".ACTIVE.FORM"]] = form
   } else {
@@ -207,7 +209,15 @@ formSubmitClick = function(form, submit.handler = NULL,app=getApp(),id=NULL,sess
   }
 }
 
+set.form.params = function(form, params) {
+  form$params = params
+  form
+}
 
+set.form.widgets.values = function(form=get.form(),values,prefix=form$prefix, postfix=form$postfix) {
+  names(values) = paste0(prefix, names(values),postfix)
+  setWidgetValues(values)
+}
 
 get.form.values = function(form=get.form(),fields=form$fields,field.names=names(fields), prefix=form$prefix, postfix=form$postfix, check.values = TRUE, show.alerts=isTRUE(form$show.alerts)) {
 
@@ -441,7 +451,11 @@ fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[[
         input = "text"
       }
     } else {
-      input = "selectize"
+      if (isTRUE(field$type=="radio")) {
+        input="radio"
+      } else {
+        input = "selectize"
+      }
     }
   }
 
@@ -470,6 +484,19 @@ fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[[
     if (is.na(value) & na.is.empty) value= ""
     #res[[1]] = dateInput(id, label=label, value=value)
     res[[1]] = textInput(id, label=label, value=value)
+  } else if (input == "radio") {
+    # choices come from a specified set
+    restore.point("fieldInput.radio")
+
+    if (!is.null(choice_set)) {
+      for (set in sets[choice_set])
+        choices = c(choices, set)
+    }
+    if (!is.null(choice_labels))
+      names(choices) = choice_labels
+    li = as.list(choices)
+    mutliple = FALSE
+    res[[1]] = radioButtons(id, label,choices=choices, selected=value)
   } else if (input == "selectize") {
     # choices come from a specified set
     restore.point("fieldInput.selectize")
