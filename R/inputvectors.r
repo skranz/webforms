@@ -8,7 +8,7 @@ label.and.input = function(label, input, inputId, label.left=FALSE) {
   }
 }
 
-textInputVector = function(inputId, label=NULL, value="", readonly = rep(FALSE, length(inputId)), style="", autocomplete = "off",class="", size=NULL, label.left=TRUE, form.control.class=TRUE){
+textInputVector = function(inputId, label=NULL, value="", readonly = rep(FALSE, length(inputId)), style="", autocomplete = "off",class=extra.class, size=NULL, label.left=TRUE, form.control.class=TRUE, extra.class=""){
   restore.point("textInputVector")
 
   if (!is.null(size)) {
@@ -23,11 +23,11 @@ textInputVector = function(inputId, label=NULL, value="", readonly = rep(FALSE, 
   label.and.input(label = label, input=input, inputId = inputId, label.left=label.left)
 }
 
-numericInputVector = function (inputId, label=NULL, value=0)  {
+numericInputVector = function (inputId, label=NULL, value=0, extra.class="")  {
   code = paste0('
 <div class="form-group shiny-input-container">
   <label for="',inputId,'">',label,'</label>
-  <input id="',inputId,'" type="number" class="form-control" value="',value,'"/>
+  <input id="',inputId,'" type="number" class="form-control ', extra.class,'" value="',value,'"/>
 </div>
   ')
   code = paste0('
@@ -52,14 +52,14 @@ smallButtonVector = function(id, label="",icon=NULL) {
   paste0('<button id="',id,'" type="button" class="btn btn-default action-button btn-sm">',icon,label,'</button>')
 }
 
-actionButtonVector = function(id, label="",icon=NULL) {
+simpleButtonVector = actionButtonVector = function(id, label="",icon=NULL, extra.class = "", extra.head="") {
   if (is.null(icon)) {
     icon=""
   }
-  paste0('<button id="',id,'" type="button" class="btn btn-default action-button">',icon,label,'</button>')
+  paste0('<button id="',id,'" type="button" class="btn btn-default action-button ',extra.class,'" ',extra.head,'>',icon,label,'</button>')
 }
 
-checkBoxInputVector = function (inputId, label, value = FALSE,...)  {
+checkBoxInputVector = function (inputId, label, value = FALSE, extra.class="",...)  {
   code = rep("", length(inputId))
   checked.str = ifelse(value,' checked="checked"',"")
   value = rep(value, length.out=length(code))
@@ -68,7 +68,7 @@ checkBoxInputVector = function (inputId, label, value = FALSE,...)  {
 <div class="form-group shiny-input-container">
   <div class="checkbox">
     <label>
-      <input id="',inputId,'" type="checkbox" ', checked.str,'/>
+      <input id="',inputId,'" type="checkbox" ', checked.str,' class="', extra.class,'"/>
       <span>',label,'</span>
     </label>
   </div>
@@ -81,7 +81,7 @@ uiOutputVector = function(id) {
   paste0('<div id="',id,'" class="shiny-html-output"></div>')
 }
 
-selectizeInputVector = function (inputId, label=NULL, choices, selected=1, multiple=FALSE, value=NULL, options=list(dropdownParent="body"),width=NULL, ...)  {
+selectizeInputVector = function (inputId, label=NULL, choices, selected=1, multiple=FALSE, value=NULL, options=list(dropdownParent="body"),width=NULL, extra.class = "", ...)  {
   restore.point("selectizeInputVector")
 
   if (multiple)
@@ -140,7 +140,7 @@ selectizeInputVector = function (inputId, label=NULL, choices, selected=1, multi
 <div class="form-group shiny-input-container vector-input-container" style="', style,'">
   ',label.code,'
   <div>
-    <select id="',inputId,'" class="form-control">
+    <select id="',inputId,'" class="form-control ', extra.class,'">
     ',options.str,'
     ',options.code,'
   </div>

@@ -384,13 +384,13 @@ determine.field.input.type = function(input=field[["input"]], choices=field$choi
   input
 }
 
-fieldInputVector = function(name=field$name, n=length(value), label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=first.non.null(form[["lang"]],"en"), lang.field = get.lang.field(field, lang), sets = form$sets, form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class), item.separator="_-_",...) {
+fieldInputVector = function(name=field$name, n=length(value), row.ids=seq_len(n), label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=first.non.null(form[["lang"]],"en"), lang.field = get.lang.field(field, lang), sets = form$sets, form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class), item.separator="_-_", extra.class="",ns=first.non.null(form$ns, NS(form$prefix)),...) {
   restore.point("fieldInputVector")
 
   if (n==0) return(character(0))
 
-  item.postfix = paste0(item.separator,1:n)
-  id = paste0(prefix,name,postfix, item.postfix)
+  item.postfix = paste0(item.separator,row.ids)
+  id = paste0(ns(name), item.postfix)
 
   input = determine.field.input.type(type=type, field=lang.field, choices = choices, choice_set=choice_set, readonly = readonly)
 
@@ -402,9 +402,9 @@ fieldInputVector = function(name=field$name, n=length(value), label=lang.field$l
   if (input == "text" | input == "date") {
     if (is.null(value)) value = ""
     if (is.na(value) & na.is.empty) value= ""
-    res= textInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class)
+    res= textInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class, extra.class=extra.class)
   } else if (input == "checkbox") {
-    res= checkBoxInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class)
+    res= checkBoxInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class, extra.class=extra.class)
 
   } else if (input == "radio") {
     stop("vector of radio buttons not yet implemented")
@@ -425,10 +425,10 @@ fieldInputVector = function(name=field$name, n=length(value), label=lang.field$l
     if ( (is.null(value) | isTRUE(field$optional)) & !multiple) {
       choices = c(list(""),choices)
     }
-    res = selectizeInputVector(id, label,choices=choices, value=value, multiple=multiple)
+    res = selectizeInputVector(id, label,choices=choices, value=value, multiple=multiple, extra.class=extra.class)
 
-  } else if (input == "ace") {
-    stop("vector of ace editors not yet implemented")
+  } else {
+    stop(paste0("vector of ", input, " not yet implemented."))
   }
 
   if (field_alert) {

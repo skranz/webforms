@@ -1,3 +1,78 @@
+form.table.default.css = function(class="r-webform-table") {
+  css = paste0('
+table.',class,' {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.',class,' th {
+  font-weight: bold;
+  margin: 5px;
+  padding: 5px;
+  //border: solid 1px black;
+  text-align: center;
+  font-size: 100%;
+}
+.',class,' td {
+  font-family: Verdana,Geneva,sans-serif;
+  margin: 0px 3px 1px 3px;
+  padding: 1px 3px 1px 3px;
+  //border-left: solid 1px black;
+  //border-right: solid 1px black;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 100%;
+}
+
+')
+}
+
+
+form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=col.names(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, row.ids = seq_len(NROW(df)), ...) {
+  restore.point("form.html.table")
+  n = NROW(df)
+
+  if (!is.null(col.names) & !just.tr) {
+    colnames=col.names
+    if (is.null(col.tooltips)) {
+      inner = colnames
+    } else {
+      inner = paste0('<span title="', col.tooltips,'">', colnames, '<span>')
+      #inner[nchar(col.tooltips)==0] = colnames
+    }
+
+    head = paste0('<th class="data-frame-th">',inner,'</th>', collapse="")
+    head = paste0('<tr>', head, '</tr>')
+  } else {
+    head = ""
+  }
+
+  td.class = rep(c("odd-row","even-row"), length.out=NROW(df))
+  if (length(td.class)>0) {
+    td.class[length(td.class)]="td-bottom"
+  }
+  tr.class = paste0("tr-row-", row.ids)
+
+  my.format.vals = function(vals) {
+    rmdtools::format.vals(vals, signif.digits=signif.digits, round.digits=round.digits)
+  }
+
+  cols = 1:NCOL(df)
+  rows = 1:NROW(df)
+  code = paste0('"<td data-row = \\"",rows,"\\" data-col = \\"',cols,'\\" class=\\"",td.class,"\\" nowrap>", my.format.vals(df[[',cols,']]),"</td>"', collapse=",")
+  code = paste0('paste0("<tr class=\\"",tr.class,"\\">",',code,',"</tr>", collapse="\\n")')
+  call = parse(text=code)
+  main = eval(parse(text=code))
+
+  if (just.tr) return(main)
+
+
+  tab = paste0('<table class="',class,'" id="',id,'">\n', head, main, "\n</table>")
+  return(tab)
+}
+
+
 
 html.table = function(df, id = random.string(), sel.row=NULL, show.header=TRUE, header=colnames(df), row.names=FALSE, border=TRUE, bg.color =c("#dddddd","#ffffff"), sel.color='#ffdc98', font.size="100%", round.digits=8, signif.digits=8,col.tooltips=NULL, td.padding = "3px 5px 3px 5px", td.margin = "2px 4px 2px 4px", ...) {
   restore.point("html.table")

@@ -39,7 +39,7 @@ examples.vecForm = function() {
 
 
 form.ui.handsone.table = function(form, data, fields=form$fields, label=first.none.null(lang.form[["label"]],form[["label"]]), help_html=lang.form[["help_html"]],note_html=lang.form[["note_html"]],note_title=first.none.null(lang.form[["note_title"]],"Info"), sets = form[["sets"]],
-  submitBtn=NULL, submitLabel="Submit",add.submit=TRUE,lang=form[["lang"]], addLabel="",addIcon=icon(name = icon("plus",lib = "glyphicon")), width=first.none.null(form$width,"100%"), height=first.none.null(form$height,"100%"), stretchH='all', lang.form = get.lang.form(form, lang), rowHeaders=NULL, readOnly=FALSE, ...) {
+  submitBtn=NULL, submitLabel="Submit",add.submit=TRUE,lang=form[["lang"]], addLabel="",addIcon=icon(name = icon("plus",lib = "glyphicon")), width=first.none.null(form$width,"100%"), height=first.none.null(form$height,"100%"), stretchH='all', lang.form = get.lang.form(form, lang), rowHeaders=NULL, readOnly=FALSE,  ...) {
   restore.point("form.ui.handsone.table")
 
   library(rhandsontable)
