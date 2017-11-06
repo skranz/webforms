@@ -1,5 +1,6 @@
 examples.tableform.ui = function() {
   setwd("D:/libraries/stuko/stuko/inst/yaml")
+
   li = read.yaml("coursestaff.yaml",keep.quotes = FALSE)
   fields = li$fields
 
@@ -9,10 +10,13 @@ examples.tableform.ui = function() {
   data = data_frame(staffid=c("skranz","NN"), teaching_role=c("LE","TA"), responsible=FALSE, commission="")
   sets = c(sets, list(staff=list("Sebastian Kranz"="skranz","Max Mustermann"="mm","NN"="NN")))
 
+  empty.staff = data.frame(staffid="", teaching_role="", responsible=FALSE, commission="no")
+
+  app = eventsApp()
+
   form = tableform(id="staff_form", fields=fields,lang="de", sets = sets)
   ui = tableform.ui(form=form, data=data, use.delete.btn = TRUE)
 
-  app = eventsApp()
   app$ui = fluidPage(
     selectizeHeaders(),
     htmlDependency("font-awesome","4.7.0", c(href = "shared/font-awesome"), stylesheet = "css/font-awesome.min.css"),
@@ -25,26 +29,18 @@ examples.tableform.ui = function() {
     hr(),
     simpleButton("btnSave","Speichern",form.sel = paste0(".",form$ns("input")))
   )
+
   buttonHandler("addCourseStaffBtn", function(...) {
     restore.point("addCourseStaffBtn")
-    form.html.table.add.row(form=form, data=data[1,])
+    form.html.table.add.row(form=form, data=empty.staff)
   })
 
-  classEventHandler(class = form$ns("delBtn"), event="click", function(data,...) {
-    args = list(...)
-    restore.point("delBtn")
-    cat("\ndel pressed...")
-    table.id = form$id
-    sel = paste0("#",table.id," tr.tr-row-",data$rowid)
-    evalJS(paste0('$("', sel,'").remove();'))
-  })
 
   buttonHandler("btnSave", function(formValues,...) {
     args = list(...)
     restore.point("btnSave")
     df = extract.tableform.formValues(formValues, form)
     cat("\nsave pressed...")
-
   })
 
   viewApp(app)
@@ -106,7 +102,7 @@ extract.tableform.formValues = function(formValues, form) {
 
 }
 
-tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), row.ids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.add.btn=TRUE, use.delete.btn=TRUE, labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, ...) {
+tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), row.ids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=TRUE, use.add.btn=TRUE, use.delete.btn=TRUE, labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, ...) {
   restore.point("tableform.ui")
 
   ns = NS(prefix)
@@ -118,23 +114,93 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
     df[[col]] = fieldInputVector(name=col,fields = fields, value=data[[col]], sets=sets, label=NULL, lang=lang, row.ids=row.ids,ns=ns, extra.class=ns("input"))
   }
 
+  btns = NULL
   if (use.delete.btn) {
-    df$.del.btn = tableform.deleteBtnVector(id=id,n=n,ns=ns,label=delete.btn.label, icon = delete.btn.icon, row.ids=row.ids)
+    btns = tableform.delete.btn.vector(id=id,n=n,ns=ns,label=delete.btn.label, icon = delete.btn.icon, row.ids=row.ids)
+  }
+
+  if (!is.null(use.move.btn)) {
+    btns = paste0(
+      tableform.move.btn.vector(id=id,dir="up",n=n,ns=ns, row.ids=row.ids),
+      tableform.move.btn.vector(id=id,dir="down",n=n,ns=ns, row.ids=row.ids),
+      btns
+    )
+  }
+
+  if (!is.null(btns)) {
+    df$.btns = btns
     if (length(colnames)<NCOL(df)) {
       colnames=c(colnames," ")
     }
-
   }
 
   html = form.html.table(id=table.id,df,col.names=colnames, just.tr = just.tr, row.ids=row.ids)
 
   if (just.tr) return(html)
 
-  HTML(html)
+  ui = HTML(html)
+
+
+  if (add.handlers) {
+    if (use.delete.btn) {
+      tableform.delete.btn.handler(table.id = table.id, ns=ns)
+    }
+    if (use.move.btn) {
+      tableform.move.btn.handler(table.id = table.id, ns=ns)
+    }
+  }
+
+  ui
 }
 
-tableform.deleteBtnVector = function(id, n, ns, label="", icon=icon("o-trash"), row.ids = seq_len(n)) {
-  restore.point("tableform.deleteBtnVector")
+tableform.delete.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, pre.delete.fun=NULL,...) {
+  restore.point("tableform.delete.btn.handler")
+
+  classEventHandler(class = ns("delBtn"), event="click", function(data,...) {
+    args = list(...)
+    restore.point("delBtn")
+
+    if (!is.null(pre.delete.fun)) {
+      res = pre.delete.fun(data, ...)
+      if (!res$ok) return()
+    }
+
+    cat("\ndel pressed...")
+    sel = paste0("#",table.id," tr.tr-row-",data$rowid)
+    evalJS(paste0('$("', sel,'").remove();'))
+  })
+
+}
+
+tableform.move.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, after.move.fun=NULL,...) {
+  restore.point("tableform.delete.btn.handler")
+
+  classEventHandler(class = ns("moveBtn"), event="click", function(data,...) {
+    args = list(...)
+    restore.point("delBtn")
+    dir = data$dir
+
+    sel = paste0("#",table.id," tr.tr-row-",data$rowid)
+    if (dir=="up") {
+      code=paste0('$("',sel,'").prev().before($("',sel,'"));')
+    } else {
+      code=paste0('$("',sel,'").next().after($("',sel,'"));')
+    }
+
+    cat("\nmove pressed...")
+    evalJS(code)
+
+    if (!is.null(after.move.fun)) {
+      after.move.fun(data, ...)
+    }
+
+  })
+
+}
+
+
+tableform.delete.btn.vector = function(id, n, ns, label="", icon=icon("o-trash"), row.ids = seq_len(n)) {
+  restore.point("tableform.delete.btn.vector")
 
   del.btn = simpleButtonVector(
     ns(paste0("delBtn_-_",row.ids)),
@@ -144,6 +210,19 @@ tableform.deleteBtnVector = function(id, n, ns, label="", icon=icon("o-trash"), 
     extra.head = paste0('data-rowid="', row.ids,'"')
   )
 }
+
+tableform.move.btn.vector = function(id, dir="up", n, ns, label="", icon=if(dir=="up") shiny::icon("arrow-up") else shiny::icon("arrow-down"), row.ids = seq_len(n)) {
+  restore.point("tableform.move.btn.vector")
+
+  btn = simpleButtonVector(
+    ns(paste0(dir,"Btn_-_",row.ids)),
+    label,
+    icon=icon,
+    extra.class = ns(paste0("moveBtn")),
+    extra.head = paste0('data-rowid="', row.ids,'" data-dir="',dir,'"')
+  )
+}
+
 
 tableform.colnames = function(fields, data, lang="en") {
   restore.point("tableform.colnames")
