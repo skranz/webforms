@@ -45,18 +45,17 @@ extraSmallButtonVector = function(id, label="",icon=NULL) {
 }
 
 
-smallButtonVector = function(id, label="",icon=NULL) {
-  if (is.null(icon)) {
-    icon=""
-  }
-  paste0('<button id="',id,'" type="button" class="btn btn-default action-button btn-sm">',icon,label,'</button>')
+smallButtonVector = function(id, label="",icon=NULL,...) {
+  simpleButtonVector(id, label, icon,size="sm",...)
 }
 
-simpleButtonVector = actionButtonVector = function(id, label="",icon=NULL, extra.class = "", extra.head="") {
+
+
+simpleButtonVector = actionButtonVector = function(id, label="",icon=NULL, size=c("default","sm","xs")[1], class=paste0("btn btn-default action-button", if (size != "default") paste0(" btn-",size)), extra.class = "", extra.head="") {
   if (is.null(icon)) {
     icon=""
   }
-  paste0('<button id="',id,'" type="button" class="btn btn-default action-button ',extra.class,'" ',extra.head,'>',icon,label,'</button>')
+  paste0('<button id="',id,'" type="button" class="',class, ' ',extra.class,'" ',extra.head,'>',icon,label,'</button>')
 }
 
 checkBoxInputVector = function (inputId, label, value = FALSE, extra.class="",...)  {

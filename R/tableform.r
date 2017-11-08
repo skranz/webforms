@@ -89,10 +89,10 @@ extract.tableform.formValues = function(formValues, form) {
   names = str.right.of(names(vals),prefix)
 
   vfields = str.left.of(names,"_-_")
-  row.ids = str.right.of(names,"_-_")
+  rowids = str.right.of(names,"_-_")
 
   nc = length(unique(vfields))
-  nr = length(unique(row.ids))
+  nr = length(unique(rowids))
 
   # We hope that the css selector always fetches
   # the inputs rowwise
@@ -102,7 +102,7 @@ extract.tableform.formValues = function(formValues, form) {
 
 }
 
-tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), row.ids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=TRUE, use.add.btn=TRUE, use.delete.btn=TRUE, labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, ...) {
+tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), rowids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=TRUE, use.add.btn=TRUE, use.delete.btn=TRUE, labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, ...) {
   restore.point("tableform.ui")
 
   ns = NS(prefix)
@@ -111,18 +111,18 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
   df = data
   col = field.names[1]
   for (col in field.names) {
-    df[[col]] = fieldInputVector(name=col,fields = fields, value=data[[col]], sets=sets, label=NULL, lang=lang, row.ids=row.ids,ns=ns, extra.class=ns("input"))
+    df[[col]] = fieldInputVector(name=col,fields = fields, value=data[[col]], sets=sets, label=NULL, lang=lang, rowids=rowids,ns=ns, extra.class=ns("input"))
   }
 
   btns = NULL
   if (use.delete.btn) {
-    btns = tableform.delete.btn.vector(id=id,n=n,ns=ns,label=delete.btn.label, icon = delete.btn.icon, row.ids=row.ids)
+    btns = tableform.delete.btn.vector(id=id,n=n,ns=ns,label=delete.btn.label, icon = delete.btn.icon, rowids=rowids)
   }
 
   if (!is.null(use.move.btn)) {
     btns = paste0(
-      tableform.move.btn.vector(id=id,dir="up",n=n,ns=ns, row.ids=row.ids),
-      tableform.move.btn.vector(id=id,dir="down",n=n,ns=ns, row.ids=row.ids),
+      tableform.move.btn.vector(id=id,dir="up",n=n,ns=ns, rowids=rowids),
+      tableform.move.btn.vector(id=id,dir="down",n=n,ns=ns, rowids=rowids),
       btns
     )
   }
@@ -134,7 +134,7 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
     }
   }
 
-  html = form.html.table(id=table.id,df,col.names=colnames, just.tr = just.tr, row.ids=row.ids)
+  html = form.html.table(id=table.id,df,col.names=colnames, just.tr = just.tr, rowids=rowids)
 
   if (just.tr) return(html)
 
@@ -199,27 +199,27 @@ tableform.move.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, a
 }
 
 
-tableform.delete.btn.vector = function(id, n, ns, label="", icon=icon("o-trash"), row.ids = seq_len(n)) {
+tableform.delete.btn.vector = function(id, n, ns, label="", icon=icon("o-trash"), rowids = seq_len(n)) {
   restore.point("tableform.delete.btn.vector")
 
   del.btn = simpleButtonVector(
-    ns(paste0("delBtn_-_",row.ids)),
+    ns(paste0("delBtn_-_",rowids)),
     label,
     icon=icon,
     extra.class = ns("delBtn"),
-    extra.head = paste0('data-rowid="', row.ids,'"')
+    extra.head = paste0('data-rowid="', rowids,'"')
   )
 }
 
-tableform.move.btn.vector = function(id, dir="up", n, ns, label="", icon=if(dir=="up") shiny::icon("arrow-up") else shiny::icon("arrow-down"), row.ids = seq_len(n)) {
+tableform.move.btn.vector = function(id, dir="up", n, ns, label="", icon=if(dir=="up") shiny::icon("arrow-up") else shiny::icon("arrow-down"), rowids = seq_len(n)) {
   restore.point("tableform.move.btn.vector")
 
   btn = simpleButtonVector(
-    ns(paste0(dir,"Btn_-_",row.ids)),
+    ns(paste0(dir,"Btn_-_",rowids)),
     label,
     icon=icon,
     extra.class = ns(paste0("moveBtn")),
-    extra.head = paste0('data-rowid="', row.ids,'" data-dir="',dir,'"')
+    extra.head = paste0('data-rowid="', rowids,'" data-dir="',dir,'"')
   )
 }
 
