@@ -29,7 +29,7 @@ table.',class,' {
 }
 
 
-form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=col.names(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, row.ids = seq_len(NROW(df)), ...) {
+form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=col.names(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, rowids = seq_len(NROW(df)), ...) {
   restore.point("form.html.table")
   n = NROW(df)
 
@@ -52,7 +52,7 @@ form.html.table = function(df, class="r-webform-table", id = random.string(), co
   if (length(td.class)>0) {
     td.class[length(td.class)]="td-bottom"
   }
-  tr.class = paste0("tr-row-", row.ids)
+  tr.class = paste0("data-row tr-row-", rowids)
 
   my.format.vals = function(vals) {
     rmdtools::format.vals(vals, signif.digits=signif.digits, round.digits=round.digits)

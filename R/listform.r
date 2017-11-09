@@ -2,7 +2,7 @@
 examples.listform.ui = function() {
   setwd("D:/libraries/stuko/stuko/inst/yaml")
 
-  li = read.yaml("module.yaml",keep.quotes = FALSE)
+  li = read.yaml("test.yaml",keep.quotes = FALSE)
   fields = li$fields
 
   sets = read.yaml("sets.yaml",keep.quotes = FALSE)$lang_de
@@ -11,10 +11,10 @@ examples.listform.ui = function() {
   inner.form$lang = "de"
   inner.form$sets = sets
   inner.ui.fun = function(data, ns) {
+    restore.point("inner.ui.fun")
     prefix=ns("")
     tagList(
-      form.ui.simple(form=inner.form,values = data, prefix=prefix),
-      p("hi")
+      form.ui.simple(form=inner.form,values = data, prefix=prefix,add.submit = FALSE)
     )
   }
 
@@ -27,9 +27,8 @@ examples.listform.ui = function() {
 
   app = eventsApp()
 
-  ui = listform.default.middle.ui(inner.ui.fun=inner.ui.fun)
-
-  #form = listform(id="staff_form", fields=fields,lang="de", sets = sets)
+  id = "modules"
+  ui = listform.ui(id=id,inner.ui.fun=inner.ui.fun, num.rows = 2)
 
   app$ui = fluidPage(
     selectizeHeaders(),
@@ -38,24 +37,92 @@ examples.listform.ui = function() {
     tags$style(HTML(
       ".vector-input-container, .vector-input-container .form-control {margin-bottom: 0px;}")),
     div(style="margin-bottom: 5px; margin-top:5px;",ui),
-    simpleButton("addCourseStaffBtn","Modul hinzufügen")
+    simpleButton("addModuleBtn","Zusätzliches Modul hinzufügen"),
+    simpleButton("saveBtn", "Speichern", form.sel = listform.input.selector("modules"))
   )
+
+  buttonHandler("addModuleBtn", function(...) {
+    restore.point("addModuleBtn")
+    listform.add.row(id=id,inner.ui.fun = inner.ui.fun)
+  })
+
+  buttonHandler("saveBtn", function(formValues, ...) {
+    restore.point("listformSaveBtn")
+    values = extract.listform.formValues(id=id, formValues=formValues)
+    cat("\nsave...")
+  })
 
   viewApp(app)
 
 }
 
+extract.listform.formValues = function(id, formValues,..., rowid.as.name=TRUE) {
+  restore.point("extract.listform.formValues")
+  formValues = formValues[names(formValues)!="undefined"]
+
+  names = names(formValues)
+  names = str.right.of(names,paste0(id,"-"))
+  rowid = str.left.of(names,"-")
+  field.name = str.right.of(names,"-")
+
+  li = lapply(unique(rowid), function(rid) {
+    rows = rowid == rid
+    res = formValues[rows]
+    names(res) = field.name[rows]
+    res
+  })
+  if (rowid.as.name)
+    names(li) = unique(rowid)
+  li
 
 
-listform.default.middle.ui = function(inner.ui.fun, row.data = NULL, rowid = random.string(), use.delete.btn=TRUE, use.move.btn=TRUE,title="",ns=NS("listform"), extra.class=NULL,btn.size=c("xs", "sm","default")[1], ...) {
+}
+
+listform.input.selector = function(id) {
+  restore.point("listform.input.selector")
+  paste0("#",id," .middle-ui ", c("select", "input"), collapse=",")
+}
+
+listform.handlers = function(id=first.non.null(form[["id"]],listform),ns=first.non.null(form$ns, NS(id)), use.delete.btn=TRUE, use.move.btn=TRUE, pre.delete.fun=NULL, after.move.fun=NULL, form=NULL,...) {
+
+  if (use.delete.btn)
+    listform.delete.btn.handler(id=id, ns=ns, pre.delete.fun=pre.delete.fun)
+
+  if (use.move.btn)
+    listform.move.btn.handler(id=id, ns=ns, after.move.fun=after.move.fun)
+
+}
+
+listform.ui = function(id=first.non.null(form[["id"]],listform),inner.ui.fun, data=NULL, num.rows=max(NROW(data),1), middle.ui.fun = listform.default.middle.ui, form=NULL, ns=first.non.null(form$ns, NS(id)), add.handlers=TRUE,...) {
+  restore.point("listform.ui")
+
+
+  ui.li = lapply(seq_len(num.rows), function(i) {
+    row.data = if (i<=NROW(data)) data[i,]
+    middle.ui.fun(inner.ui.fun=inner.ui.fun, row.data=row.data, ns=ns, form=form,...)
+  })
+
+
+  if (add.handlers) {
+    listform.handlers(id=id, ns=ns,...)
+  }
+
+  ui = div(id=id,
+    ui.li
+  )
+  ui
+}
+
+
+listform.default.middle.ui = function(inner.ui.fun, row.data = NULL, rowid = random.string(), use.delete.btn=TRUE, use.move.btn=TRUE,title="",ns=NS("listform"), extra.class=NULL,btn.size=c("xs", "sm","default")[1], id=first.non.null(form$id,"listform"), form=NULL,  ...) {
   restore.point("listform.default.middle.ui")
 
-  row.ns = ns("rowid")
+  row.ns = NS(ns(rowid))
 
-  inner.ui = inner.ui.fun(row.data, row.ns)
+  inner.ui = inner.ui.fun(row.data, ns=row.ns)
 
 
-  div(id=rowid,
+  div(id=rowid, class=paste0("middle-ui middle-ui-",rowid," ", extra.class),
     if (use.move.btn)
       HTML(listform.move.btn(rowid,"up", ns, size=btn.size)),
     if (use.move.btn)
@@ -81,29 +148,8 @@ listform = function(id,fields, prefix = paste0("listform-", id), lang="en", sets
   )
 }
 
-extract.listform.formValues = function(formValues, form) {
-  restore.point("extract.listform.formValues")
-  prefix = paste0(form$prefix,"-")
-  rows = str.starts.with(names(formValues), prefix)
-  vals = unlist(formValues[rows])
-  names = str.right.of(names(vals),prefix)
 
-  vfields = str.left.of(names,"_-_")
-  rowids = str.right.of(names,"_-_")
-
-  nc = length(unique(vfields))
-  nr = length(unique(rowids))
-
-  # We hope that the css selector always fetches
-  # the inputs rowwise
-  df = as_data_frame(matrix(vals,nrow = nr, byrow=TRUE))
-  colnames(df) = unique(vfields)
-  df
-
-}
-
-
-listform.delete.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, pre.delete.fun=NULL,...) {
+listform.delete.btn.handler = function(id=form$id, ns=form$ns, form=NULL, pre.delete.fun=NULL,...) {
   restore.point("listform.delete.btn.handler")
 
   classEventHandler(class = ns("delBtn"), event="click", function(data,...) {
@@ -116,25 +162,25 @@ listform.delete.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, 
     }
 
     cat("\ndel pressed...")
-    sel = paste0("#",table.id," tr.tr-row-",data$rowid)
+    sel = paste0("#",id," div.middle-ui-",data$rowid)
     evalJS(paste0('$("', sel,'").remove();'))
   })
 
 }
 
-listform.move.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, after.move.fun=NULL,...) {
+listform.move.btn.handler = function(id=form$id, ns=form$ns, form=NULL, after.move.fun=NULL,...) {
   restore.point("listform.delete.btn.handler")
 
   classEventHandler(class = ns("moveBtn"), event="click", function(data,...) {
     args = list(...)
-    restore.point("delBtn")
+    restore.point("moveBtn")
     dir = data$dir
 
-    sel = paste0("#",table.id," tr.tr-row-",data$rowid)
+    sel = paste0("#",id," div.middle-ui-",data$rowid)
     if (dir=="up") {
-      code=paste0('$("',sel,'").prev().before($("',sel,'"));')
+      code=paste0('$("',sel,'").prev("div.middle-ui").before($("',sel,'"));')
     } else {
-      code=paste0('$("',sel,'").next().after($("',sel,'"));')
+      code=paste0('$("',sel,'").next("div.middle-ui").after($("',sel,'"));')
     }
 
     cat("\nmove pressed...")
@@ -173,6 +219,21 @@ listform.move.btn = function(rowid, dir="up",ns, label="", icon=if(dir=="up") sh
     extra.class = ns(paste0("moveBtn")),
     extra.head = paste0('data-rowid="', rowid,'" data-dir="',dir,'"')
   )
+}
+
+
+listform.add.row = function(id=form$id,row.data=NULL, inner.ui.fun, middle.ui.fun=listform.default.middle.ui,form=NULL, ...) {
+  restore.point("listform.add.row")
+  cat("\nadd.row")
+
+  html = as.character(middle.ui.fun(id=id, inner.ui.fun=inner.ui.fun, row.data=data,...))
+
+  restore.point("listform.add.row2")
+
+  fun = paste0('$("#', id,'").append')
+  callJS(fun, html)
+  evalJS(paste0('$("#', id,' select").selectize({dropdownParent: "body"});'))
+
 }
 
 

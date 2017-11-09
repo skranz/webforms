@@ -166,8 +166,8 @@ tableform.delete.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL,
     }
 
     cat("\ndel pressed...")
-    sel = paste0("#",table.id," tr.tr-row-",data$rowid)
-    evalJS(paste0('$("', sel,'").remove();'))
+    code = paste0('$("#', table.id," tr.tr-row-",data$rowid,'").remove();')
+    evalJS(code)
   })
 
 }
@@ -182,7 +182,7 @@ tableform.move.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, a
 
     sel = paste0("#",table.id," tr.tr-row-",data$rowid)
     if (dir=="up") {
-      code=paste0('$("',sel,'").prev().before($("',sel,'"));')
+      code=paste0('$("',sel,'").prev(".data-row").before($("',sel,'"));')
     } else {
       code=paste0('$("',sel,'").next().after($("',sel,'"));')
     }
