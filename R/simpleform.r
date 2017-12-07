@@ -34,3 +34,13 @@ form.ui.simple = function(form, fields=form$fields, values=NULL, submitBtn=NULL,
 
   tagList(li, submitAlert,submitBtn)
 }
+
+
+extract.form.formValues = function(formValues, field.names = names(fields), fields=form$fields, prefix=form$prefix, form = NULL) {
+  restore.point("extract.form.formValues")
+  cols = paste0(prefix,field.names)
+  use = cols %in% names(formValues)
+  vals = formValues[cols[use]]
+  names(vals) = field.names[use]
+  vals
+}

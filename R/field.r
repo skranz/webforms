@@ -1,10 +1,12 @@
 
 
-fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=form[["lang"]], lang.field = get.lang.field(field, lang), sets = form$sets, widget.as.character = !is.false(form$widget.as.character), form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class)) {
+fieldInput = function(name=field$name, label=lang.field$label,  help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=form[["lang"]], lang.field = get.lang.field(field, lang), sets = form$sets, widget.as.character = !is.false(form$widget.as.character), form=get.form(), na.is.empty=TRUE, size=first.none.null(field[["size"]],NULL), form.control.class=!isTRUE(form$form.control.class)) {
 
   restore.point("fieldInput")
 
   res = vector("list",3)
+
+  width = if(!is.null(size)) paste0(size,"em")
 
   if (isTRUE(opts$name_as_label) & is.null(label)) {
     label=name
@@ -49,8 +51,12 @@ fieldInput = function(name=field$name, label=lang.field$label, size=lang.field[[
       if (!widget.as.character)
         res[[1]] = HTML(res[[1]])
     } else {
-      res[[1]] = textInput(id, label, value)
+      res[[1]] = textInput(id, label, value, width=width)
     }
+  } else if (input == "textarea") {
+    if (is.null(value)) value = ""
+    if (is.na(value) & na.is.empty) value= ""
+    res[[1]] = textAreaInput(id, label, value, width=width)
   } else if (input == "date") {
     if (is.null(value)) value = ""
     if (is.na(value) & na.is.empty) value= ""
@@ -266,7 +272,13 @@ field.failure.msg = function(field,value, use.custom = TRUE, lang="en") {
 
 get.lang.field = function(field, lang=NULL) {
   restore.point("get.lang.field")
-  if (is.null(lang)) return(field)
+
+
+  if (is.null(lang)) {
+    keys = names(field)[str.starts.with(names(field),"lang_")]
+    if (length(keys)>0) return(field[[keys[1] ]])
+    return(field)
+  }
   name = paste0("lang_",lang)
   if (!is.null(field[[name]])) return(field[[name]])
   field
@@ -311,6 +323,57 @@ field.default.values = function(form, field, sets = NULL) {
   return("")
 }
 
+convert.field.values = function(values, field, sets) {
+  restore.point("convert.field.values")
+  if (is.null(values)) return(values)
+  input = determine.field.input.type(field=field)
+
+
+  if (isTRUE(input=="numeric")) {
+    return(as.numeric(values))
+  } else if (input=="integer") {
+    return(as.integer(values))
+  } else if (input=="select" | input=="radio" | input=="selectize") {
+    lf = get.lang.field(field)
+    choices = unlist(lf$choices)
+    if (is.null(choices)) {
+      choices = unlist(sets[[lf$choice_set]])
+    }
+    if (is.null(choices))
+      stop(paste0("No choices found for select or radio field"))
+    class = class(choices)
+    return(as(values, class))
+  } else if (input=="date") {
+    return(as.Date(values))
+  }
+  return(values)
+}
+
+
+determine.field.r.class = function(field, sets) {
+  restore.point("determine.field.r.class")
+  if (is.null(values)) return(values)
+  input = determine.field.input.type(field=field)
+
+
+  if (input=="numeric" | input == "integer") {
+    return(input)
+    return(as.numeric(values))
+  } else if (input=="text" | input=="textarea") {
+    return("character")
+  } else if (input=="select" | input=="radio") {
+    lf = get.lang.field(field)
+    choices = unlist(lf$choices)
+    if (is.null(choices)) {
+      choices = unlist(sets[[lf$choice_set]])
+    }
+    class = class(choices)
+    return(class)
+  } else if (input=="date") {
+    return("Date")
+  }
+  return("character")
+}
 
 # Check a vector of field values
 check.field.values = function(values, field) {
@@ -354,7 +417,7 @@ check.field.values = function(values, field) {
 }
 
 
-determine.field.input.type = function(input=field[["input"]], choices=field$choices, choice_set=field$choice_set, readonly=isTRUE(field$readonly),type=field$type, field=NULL) {
+determine.field.input.type = function(input=field[["input"]], choices=first.none.null(field$choices, lang.field$choices), choice_set=first.none.null(field$choice_set, lang.field$choice_set), readonly=isTRUE(field$readonly),type=field$type, field=NULL, lang.field = get.lang.field(field)) {
   restore.point("determine.field.input.type")
 
 
@@ -384,15 +447,15 @@ determine.field.input.type = function(input=field[["input"]], choices=field$choi
   input
 }
 
-fieldInputVector = function(name=field$name, n=length(value), row.ids=seq_len(n), label=lang.field$label, size=lang.field[["size"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=first.non.null(form[["lang"]],"en"), lang.field = get.lang.field(field, lang), sets = form$sets, form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class), item.separator="_-_", extra.class="",ns=first.non.null(form$ns, NS(form$prefix)),...) {
+fieldInputVector = function(name=field$name, n=length(value), rowids=seq_len(n), label=lang.field$label, size=lang.field[["size"]], width=lang.field[["width"]], help=lang.field$help, help_html = lang.field$help_html, note = lang.field[["note"]], note_html=lang.field$note_html, note_title = lang.field$note_title, value=first.none.null(form$params[[name]],lang.field$value, field$value), type=field$type, readonly = isTRUE(field$readonly), min=field$min, max=field$max, step=field$step, maxchar=field$maxchar, choices=first.none.null(lang.field$choices,field$choices),choice_set = first.none.null(lang.field$choice_set,field$choice_set), choice_labels = first.none.null(lang.field$choice_labels, names(lang.field$choices)),  prefix=form$prefix, postfix=form$postfix, field=fields[[name]], fields=form$fields, field_alert = !is.false(opts$field_alert), label.left = first.none.null(field$label.left, opts$label.left, FALSE), opts=form$opts, lang=first.non.null(form[["lang"]],"en"), lang.field = get.lang.field(field, lang), sets = form$sets, form=get.form(), na.is.empty=TRUE, form.control.class=!isTRUE(form$form.control.class), item.separator="_-_", extra.class="",ns=first.non.null(form$ns, NS(form$prefix)), multiple=first.none.null(field$multiple, lang.field$multiple, FALSE),...) {
   restore.point("fieldInputVector")
 
   if (n==0) return(character(0))
 
-  item.postfix = paste0(item.separator,row.ids)
+  item.postfix = paste0(item.separator,rowids)
   id = paste0(ns(name), item.postfix)
 
-  input = determine.field.input.type(type=type, field=lang.field, choices = choices, choice_set=choice_set, readonly = readonly)
+  input = determine.field.input.type(type=type, field=field, choices = choices, choice_set=choice_set, readonly = readonly)
 
   if (readonly) {
     if (is.null(value)) value = ""
@@ -401,8 +464,13 @@ fieldInputVector = function(name=field$name, n=length(value), row.ids=seq_len(n)
 
   if (input == "text" | input == "date") {
     if (is.null(value)) value = ""
-    if (is.na(value) & na.is.empty) value= ""
+    if (na.is.empty) value[is.na(value)]= ""
     res= textInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class, extra.class=extra.class)
+  } else if (input == "textarea") {
+    if (is.null(value)) value = ""
+    if (na.is.empty) value[is.na(value)]= ""
+    res= textAreaInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class, extra.class=extra.class)
+
   } else if (input == "checkbox") {
     res= checkBoxInputVector(id, label=label, value=value, readonly=readonly, size=size, label.left=label.left, form.control.class = form.control.class, extra.class=extra.class)
 
@@ -420,12 +488,16 @@ fieldInputVector = function(name=field$name, n=length(value), row.ids=seq_len(n)
       names(choices) = choice_labels
     li = as.list(choices)
 
-    multiple = FALSE
-
     if ( (is.null(value) | isTRUE(field$optional)) & !multiple) {
       choices = c(list(""),choices)
     }
-    res = selectizeInputVector(id, label,choices=choices, value=value, multiple=multiple, extra.class=extra.class)
+
+    if (multiple) {
+      res = multiSelectizeInputVector(id, label,choices=choices, value=value, extra.class=extra.class, size=size)
+    } else {
+      res = selectizeInputVector(id, label,choices=choices, value=value,extra.class=extra.class, size=size)
+
+    }
 
   } else {
     stop(paste0("vector of ", input, " not yet implemented."))
@@ -436,4 +508,15 @@ fieldInputVector = function(name=field$name, n=length(value), row.ids=seq_len(n)
     res = paste0(res, "\n", uiOutputVector(alert_id))
   }
   res
+}
+
+get.field.choices = function(field, sets, lang=NULL) {
+  lf = get.lang.field(field, lang=lang)
+  choices = unlist(first.none.null(lf$choices, field$choices))
+  if (is.null(choices)) {
+    cs = first.none.null(lf$choice_set, field$choice_set)
+    if (is.null(cs)) return(NULL)
+    choices = unlist(sets[[cs]])
+  }
+  choices
 }

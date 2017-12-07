@@ -57,8 +57,8 @@ view.form = function(form, params, launch.browser = rstudioapi::viewer, ...) {
 }
 
 
-load.and.init.form = function(file=NULL, text=NULL, utf8 = TRUE, lang="en", prefix=NULL, postfix=NULL, warn.no.prefix = TRUE,...) {
-  form = read.yaml(file=file, text=text,utf8 = utf8)
+load.and.init.form = function(file=NULL, text=NULL, utf8 = TRUE, lang="en", prefix=NULL, postfix=NULL, warn.no.prefix = TRUE,keep.quotes=FALSE,...) {
+  form = read.yaml(file=file, text=text,utf8 = utf8,keep.quotes = keep.quotes)
   init.form(form, lang=lang, prefix=prefix, postfix=postfix, warn.no.prefix = warn.no.prefix, ...)
 }
 

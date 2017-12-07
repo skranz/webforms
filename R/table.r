@@ -29,7 +29,7 @@ table.',class,' {
 }
 
 
-form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=col.names(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, rowids = seq_len(NROW(df)), ...) {
+form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=colnames(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, rowids = seq_len(NROW(df)),nowrap=TRUE, ...) {
   restore.point("form.html.table")
   n = NROW(df)
 
@@ -60,7 +60,7 @@ form.html.table = function(df, class="r-webform-table", id = random.string(), co
 
   cols = 1:NCOL(df)
   rows = 1:NROW(df)
-  code = paste0('"<td data-row = \\"",rows,"\\" data-col = \\"',cols,'\\" class=\\"",td.class,"\\" nowrap>", my.format.vals(df[[',cols,']]),"</td>"', collapse=",")
+  code = paste0('"<td data-row = \\"",rows,"\\" data-col = \\"',cols,'\\" class=\\"",td.class,"\\" ', if (nowrap) 'nowrap','>", my.format.vals(df[[',cols,']]),"</td>"', collapse=",")
   code = paste0('paste0("<tr class=\\"",tr.class,"\\">",',code,',"</tr>", collapse="\\n")')
   call = parse(text=code)
   main = eval(parse(text=code))
@@ -74,7 +74,7 @@ form.html.table = function(df, class="r-webform-table", id = random.string(), co
 
 
 
-html.table = function(df, id = random.string(), sel.row=NULL, show.header=TRUE, header=colnames(df), row.names=FALSE, border=TRUE, bg.color =c("#dddddd","#ffffff"), sel.color='#ffdc98', font.size="100%", round.digits=8, signif.digits=8,col.tooltips=NULL, td.padding = "3px 5px 3px 5px", td.margin = "2px 4px 2px 4px", ...) {
+html.table = function(df, id = random.string(), sel.row=NULL, show.header=TRUE, header=colnames(df), row.names=FALSE, border=TRUE, bg.color =c("#dddddd","#ffffff"), sel.color='#ffdc98', font.size="100%", round.digits=8, signif.digits=8,col.tooltips=NULL, td.padding = "3px 5px 3px 5px", td.margin = "2px 4px 2px 4px", nowrap=TRUE, ...) {
   restore.point("html.table")
   n = NROW(df)
 
@@ -115,7 +115,7 @@ html.table = function(df, id = random.string(), sel.row=NULL, show.header=TRUE, 
 
   cols = 1:NCOL(df)
   rows = 1:NROW(df)
-  code = paste0('"<td data-row = \\"",rows,"\\" data-col = \\"',cols,'\\" class=\\"",td.class,"\\" nowrap>", (df[[',cols,']]),"</td>"', collapse=",")
+  code = paste0('"<td data-row = \\"",rows,"\\" data-col = \\"',cols,'\\" class=\\"",td.class,"\\" ', if(nowrap) "nowrap", '>", (df[[',cols,']]),"</td>"', collapse=",")
   code = paste0('paste0("<tr class=\\"",tr.class,"\\" style =\\"background-color:",row.bgcolor,";\\">",',code,',"</tr>", collapse="\\n")')
   call = parse(text=code)
   main = eval(parse(text=code))
