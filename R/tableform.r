@@ -12,16 +12,15 @@ examples.tableform.ui = function() {
   sets = read.yaml("sets.yaml",keep.quotes = FALSE)
 
   data = select(mo, titel, extern, zuordnung, studiengang)
-  empty.row = data_frame(Titel="",Extern=FALSE, Zuordnungen=list(character(0)))
 
   app = eventsApp()
 
-  form = tableform(id="module_table", fields=fields[colnames(data)],lang="de", sets = sets)
-  ui = tableform.ui(form=form, data=data, use.delete.btn = FALSE, use.move.btn = FALSE, use.checkbox = TRUE, auto.filter = TRUE)
+  form = tableform(id="module_table", fields=fields[colnames(data)],lang="de", sets = sets, data=data, use.checkbox = TRUE)
+  ui = tableform.ui(form=form, data=data, auto.filter = TRUE)
 
-  tableformFilterHandler("module_table", function(...) {
-    args = list(...)
+  tableformFilterHandler("module_table", form=form, function(value,filter, fdata,...) {
     restore.point("filter.change")
+    tableform.update.body(form=form, data=fdata)
     cat("\nfilter changed", sample.int(1000,1))
   })
   app$ui = fluidPage(
@@ -50,10 +49,6 @@ examples.tableform.ui = function() {
 
 }
 
-tableform.col.filters = function(form) {
-
-}
-
 form.html.table.add.row = function(table.id=form$id,data=NULL, html=NULL,form=NULL,  ...) {
   restore.point("form.html.table.add.row")
   cat("\nadd.row")
@@ -76,7 +71,7 @@ selectizeHeaders = function() {
 }
 
 
-tableform = function(id,fields, prefix = paste0("tableform-", id), lang="en", sets=NULL, data=NULL) {
+tableform = function(id,fields, prefix = paste0("tableform-", id), lang="en", sets=NULL, data=NULL, use.move.btn=FALSE, use.delete.btn=FALSE, use.checkbox=FALSE) {
   nlist(
     id,
     fields,
@@ -84,6 +79,9 @@ tableform = function(id,fields, prefix = paste0("tableform-", id), lang="en", se
     lang,
     ns = NS(prefix),
     sets,
+    use.move.btn,
+    use.delete.btn,
+    use.checkbox,
     data = data
   )
 }
@@ -103,7 +101,7 @@ field.filter.input = function(id, field, sets, lang=NULL, prefix="filter__") {
   }
 }
 
-tableformFilterHandler = function(tableid, fun, data) {
+tableformFilterHandler = function(tableid=form$id, fun, form) {
   restore.point("tableformFilterHandler")
   sel = paste0("#", tableid, " .field_filter")
 
@@ -111,16 +109,80 @@ tableformFilterHandler = function(tableid, fun, data) {
   js = paste0('
   $("body").on("change","select.field_filter, input.field_filter", function (e) {
     var tab = $(e.target).parents(".r-webform-table");
-    var filters = tab.children(".field_input");
+    var filters = tab.find(".field_filter");
     var vals = shinyEventsWidgetsValues(filters);
     Shiny.onInputChange("',eventId,'", {eventId: "',eventId,'", id: tab.attr("id"), filterId: e.target.id, value: vals, nonce: Math.random()});
   });
   ')
 
-  eventHandler(eventId = eventId,fun = fun, jscript = js)
+  eventHandler(eventId = eventId,id = tableid, fun = function(...) tableform.filter.process(tableid=tableid, fun=fun, form=form,...), jscript = js)
 
+}
 
+tableform.filter.process = function(tableid=form$tableid, fun,  value, form, data=form$data, ...) {
+  restore.point("tableform.filter.process")
+  fields = form$fields
+  left = paste0(tableid, "_filter__")
+  value = value[str.starts.with(names(value), left)]
+  names(value) = str.right.of(names(value), left)
 
+  value = lapply(value, unlist)
+
+  use = sapply(value, function(val) {
+    if (is.null(val)) return(FALSE)
+    if (is.character(val)) return(any(nchar(val))>0)
+    TRUE
+  })
+
+  filter = value[use]
+  fields = fields[names(filter)]
+
+  input = unlist(lapply(fields,function(field) determine.field.input.type(field=field)))
+
+  is.text.filter = !input %in% c("select","selectize","radio")
+
+  fd = form$data
+  # Text filter
+  for (col in names(filter[is.text.filter])) {
+    fd = apply.text.filter(fd,col=col, filter[[col]])
+  }
+  # Choice filter
+  for (col in names(filter[!is.text.filter])) {
+    fd = apply.choices.filter(fd,col=col, unlist(filter[[col]]))
+  }
+
+  fun(value=value, filter=filter, tableid=tableid, form=form, fdata=fd, data=data)
+
+}
+
+apply.text.filter = function(data, col, text) {
+  restore.point("apply.text.filter")
+  rows = has.substr(tolower(as.character(data[[col]])), tolower(text))
+  data[rows,]
+}
+
+apply.choices.filter = function(data, col, choices) {
+  restore.point("apply.choices.filter")
+  vals = data[[col]]
+  multi = is.list(vals)
+  if (NROW(vals)==0) return(vals)
+
+  neg.choices = str.right.of(choices,"No-_-",not.found = NA)
+  neg.choices = neg.choices[!is.na(neg.choices)]
+  pos.choices = setdiff(choices, neg.choices)
+
+  rows = rep(TRUE, NROW(data))
+  if (!multi) {
+    vals = as.character(vals)
+    if (length(pos.choices)>0)
+      rows = rows & vals %in% pos.choices
+
+    if (length(neg.choices)>0)
+      rows = rows & (!vals %in% neg.choices)
+  } else {
+    stop("filter for multiple selection not yet implemented")
+  }
+  data[rows,]
 }
 
 extract.tableform.formValues = function(formValues, form, convert.types = FALSE) {
@@ -173,7 +235,8 @@ extract.tableform.formValues = function(formValues, form, convert.types = FALSE)
 
 }
 
-tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), rowids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=TRUE, use.add.btn=TRUE, use.delete.btn=TRUE, use.checkbox=FALSE, labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, button.col=1, auto.filter=FALSE, ...) {
+
+tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), rowids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=first.none.null(form$use.move.btn,TRUE), use.add.btn=first.none.null(form$use.add.btn,TRUE), use.delete.btn=first.none.null(form$use.delete.btn,TRUE), use.checkbox=first.none.null(form$use.checkbox,FALSE), labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, button.col=1, auto.filter=FALSE, ...) {
   restore.point("tableform.ui")
 
   ns = NS(prefix)
@@ -228,7 +291,7 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
 
   }
 
-  html = form.html.table(id=table.id,df,col.names=colnames, just.tr = just.tr, rowids=rowids)
+  html = form.html.table(id=table.id,df,col.names=colnames, just.tr = just.tr, rowids=rowids, has.filter=auto.filter)
 
 
   if (just.tr) return(html)
@@ -246,6 +309,20 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
   }
 
   ui
+}
+
+tableform.update.body = function(table.id=form$id, data=first.non.null(form$fdata,form$data), form, html=NULL) {
+
+  if (is.null(html)) {
+    html = tableform.ui(table.id=table.id, data=data, form=form, ..., just.tr=TRUE)
+  }
+  restore.point("tableform.update.body")
+
+  fun = paste0('$("#', table.id,' tbody").html')
+  callJS(fun, HTML(html))
+  evalJS(paste0('$("#', table.id,' tbody select").selectize({dropdownParent: "body"});'))
+
+
 }
 
 tableform.delete.btn.handler = function(table.id=form$id, ns=form$ns, form=NULL, pre.delete.fun=NULL,...) {

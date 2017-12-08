@@ -32,7 +32,7 @@ textAreaInputVector = function(inputId, label=NULL, value="", readonly = rep(FAL
   }
 
   input = paste0('
-    <textarea id="',inputId,'" style="',style,'" class="',class,'"', ifelse(readonly,' readonly',''),' autocomplete="',autocomplete,'"/>', value, '</textarea>')
+    <textarea id="',inputId,'" style="',style,'" class="',class,'"', ifelse(readonly,' readonly',''),' autocomplete="',autocomplete,'">', value, '</textarea>')
   label.and.input(label = label, input=input, inputId = inputId, label.left=label.left)
 }
 

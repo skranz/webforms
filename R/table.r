@@ -29,7 +29,7 @@ table.',class,' {
 }
 
 
-form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=colnames(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, rowids = seq_len(NROW(df)),nowrap=TRUE, ...) {
+form.html.table = function(df, class="r-webform-table", id = random.string(), col.names=colnames(df), col.tooltips=NULL, round.digits=8, signif.digits=8, just.tr = FALSE, rowids = seq_len(NROW(df)),nowrap=TRUE, has.filter=FALSE, ...) {
   restore.point("form.html.table")
   n = NROW(df)
 
@@ -61,14 +61,24 @@ form.html.table = function(df, class="r-webform-table", id = random.string(), co
   cols = 1:NCOL(df)
   rows = 1:NROW(df)
   code = paste0('"<td data-row = \\"",rows,"\\" data-col = \\"',cols,'\\" class=\\"",td.class,"\\" ', if (nowrap) 'nowrap','>", my.format.vals(df[[',cols,']]),"</td>"', collapse=",")
-  code = paste0('paste0("<tr class=\\"",tr.class,"\\">",',code,',"</tr>", collapse="\\n")')
+
+  # filter row will be part of thead
+
+  #code = paste0('paste0("<tr class=\\"",tr.class,"\\">",',code,',"</tr>", collapse="\\n")')
+  code = paste0('paste0("<tr class=\\"",tr.class,"\\">",',code,',"</tr>")')
   call = parse(text=code)
-  main = eval(parse(text=code))
+  body = eval(parse(text=code))
 
-  if (just.tr) return(main)
+  if (has.filter) {
+    head = paste0(head,"\n", body[1])
+    body = body[-1]
+  }
+  body = paste0(body, collapse="\n")
+
+  if (just.tr) return(body)
 
 
-  tab = paste0('<table class="',class,'" id="',id,'">\n', head, main, "\n</table>")
+  tab = paste0('<table class="',class,'" id="',id,'">\n <thead>\n', head,'\n</thead><tbody>\n', body, "\n</tbody>\n</table>")
   return(tab)
 }
 
