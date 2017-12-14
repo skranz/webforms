@@ -1,5 +1,7 @@
 is.false = function(x) {
-  if (!is.logical(x)) return(isTRUE(x))
+  if (!is.logical(x)) return(!isTRUE(x))
+  if (is.null(x)) return(FALSE)
+   x[is.na(x)] = TRUE
   !x
 }
 

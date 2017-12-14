@@ -15,7 +15,7 @@ examples.tableform.ui = function() {
 
   app = eventsApp()
 
-  form = tableform(id="module_table", fields=fields[colnames(data)],lang="de", sets = sets, data=data, use.checkbox = TRUE)
+  form = tableform(id="module_table", fields=fields[colnames(data)],lang="de", sets = sets, data=data, use.checkbox = TRUE, paginate = TRUE)
   ui = tableform.ui(form=form, data=data, auto.filter = TRUE)
 
   tableformFilterHandler("module_table", form=form, function(value,filter, fdata,...) {
@@ -71,7 +71,7 @@ selectizeHeaders = function() {
 }
 
 
-tableform = function(id,fields, prefix = paste0("tableform-", id), lang="en", sets=NULL, data=NULL, use.move.btn=FALSE, use.delete.btn=FALSE, use.checkbox=FALSE) {
+tableform = function(id,fields, prefix = paste0("tableform-", id), lang="en", sets=NULL, data=NULL, use.move.btn=FALSE, use.delete.btn=FALSE, use.checkbox=FALSE, paginate=FALSE, rows.per.page=20) {
   nlist(
     id,
     fields,
@@ -82,11 +82,20 @@ tableform = function(id,fields, prefix = paste0("tableform-", id), lang="en", se
     use.move.btn,
     use.delete.btn,
     use.checkbox,
-    data = data
+    data = data,
+    paginate,
+    rows.per.page
   )
 }
 
+num.entries.input = function(id,choices=c(10,20,50,1000), label.pre = "Show ", label.post=" entries") {
+  inner = paste0('<option value="', choices,'">', choices,',</option>', collapse="\n")
 
+  html = paste0('
+  <div class="dataTables_length" id="', id,'"><label>', label.pre,'<select name="', id,'" class="">', inner,'</select>', label.post,'</label></div>'
+  )
+  HTML(html)
+}
 
 field.filter.input = function(id, field, sets, lang=NULL, prefix="filter__") {
   restore.point("field.filter.input")
@@ -142,6 +151,7 @@ tableform.filter.process = function(tableid=form$tableid, fun,  value, form, dat
   is.text.filter = !input %in% c("select","selectize","radio")
 
   fd = form$data
+  fd$.ROW.NUM = seq_len(NROW(fd))
   # Text filter
   for (col in names(filter[is.text.filter])) {
     fd = apply.text.filter(fd,col=col, filter[[col]])
@@ -151,7 +161,7 @@ tableform.filter.process = function(tableid=form$tableid, fun,  value, form, dat
     fd = apply.choices.filter(fd,col=col, unlist(filter[[col]]))
   }
 
-  fun(value=value, filter=filter, tableid=tableid, form=form, fdata=fd, data=data)
+  fun(value=value, filter=filter, tableid=tableid, form=form, frows=fd$.ROW.NUM, data=data)
 
 }
 
@@ -236,7 +246,7 @@ extract.tableform.formValues = function(formValues, form, convert.types = FALSE)
 }
 
 
-tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), rowids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=first.none.null(form$use.move.btn,TRUE), use.add.btn=first.none.null(form$use.add.btn,TRUE), use.delete.btn=first.none.null(form$use.delete.btn,TRUE), use.checkbox=first.none.null(form$use.checkbox,FALSE), labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, button.col=1, auto.filter=FALSE, ...) {
+tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=form$fields,data=NULL, n=NROW(data), rowids = random.string(n,nchar=10), colnames=tableform.colnames(fields,data, lang), sets=form$sets,lang=first.non.null(form$lang, "en"), buttons.col=Inf, add.btn.label = labels$add.btn, delete.btn.label = "", delete.btn.icon=icon("trash-o"), use.move.btn=first.none.null(form$use.move.btn,TRUE), use.add.btn=first.none.null(form$use.add.btn,TRUE), use.delete.btn=first.none.null(form$use.delete.btn,TRUE), use.checkbox=first.none.null(form$use.checkbox,FALSE), labels=tableform.default.labels(lang), prefix=form$prefix, form=NULL, just.tr=FALSE, add.handlers=!just.tr, button.col=1, auto.filter=FALSE, paginate = first.none.null(form$paginate, FALSE), rows.per.page = first.none.null(form$rows.per.page,20), ...) {
   restore.point("tableform.ui")
 
   ns = NS(prefix)
@@ -298,6 +308,16 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
 
   ui = HTML(html)
 
+  if (paginate) {
+    nums = sort(unique(c(rows.per.page,10,20,50,100,1000)))
+    names(nums) = paste0("Show ", nums, " rows")
+    rn =  num.entries.input(ns("rowsPerPage"), nums)
+    ui = tagList(
+      rn,
+      ui
+    )
+  }
+
 
   if (add.handlers) {
     if (use.delete.btn) {
@@ -308,8 +328,20 @@ tableform.ui = function(table.id=first.non.null(form$id,random.string()),fields=
     }
   }
 
+
   ui
 }
+
+
+simpleSelect = function(inputId, label, choices, selected = NULL, multiple = FALSE, selectize = TRUE, width = NULL, size = NULL, class = if (!selectize) "form-control", extra.class="", style=if (!is.null(width)) paste0("width: ", width)) {
+  class = paste0(class, " ", extra.class)
+
+  selectTag <- tags$select(id = inputId, size = size, shiny:::selectOptions(choices, selected), class=class, style=style)
+  if (multiple)
+    selectTag$attribs$multiple <- "multiple"
+  selectTag
+}
+
 
 tableform.update.body = function(table.id=form$id, data=first.non.null(form$fdata,form$data), form, html=NULL) {
 
