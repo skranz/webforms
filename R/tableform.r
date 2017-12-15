@@ -339,6 +339,8 @@ simpleSelect = function(inputId, label, choices, selected = NULL, multiple = FAL
   selectTag <- tags$select(id = inputId, size = size, shiny:::selectOptions(choices, selected), class=class, style=style)
   if (multiple)
     selectTag$attribs$multiple <- "multiple"
+  #if (selectize)
+  #  selectTag = shiny:::selectizeIt(inputId,selectTag, options=NULL,nonempty = TRUE)
   selectTag
 }
 
