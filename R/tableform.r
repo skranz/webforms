@@ -49,6 +49,10 @@ examples.tableform.ui = function() {
 
 }
 
+table.form.add.row = function(form, data,...) {
+  form.html.table.add.row(form=form, data=data,...)
+}
+
 form.html.table.add.row = function(table.id=form$id,data=NULL, html=NULL,form=NULL,  ...) {
   restore.point("form.html.table.add.row")
   cat("\nadd.row")
